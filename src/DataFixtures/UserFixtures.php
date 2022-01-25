@@ -31,12 +31,12 @@ class UserFixtures extends Fixture
             $user = new User() ;
             // $user ->setEmail ($faker->email);
             $password = $this->encoder->encodePassword($user, 'pass_1234') ;
-            // $user ->setFirstname($faker->name);
-            // $user ->setLastname($faker->lastName);
-            // $user ->setPhone(223666);
+            $user ->setFirstname($faker->name);
+            $user ->setLastname($faker->lastName);
+            $user ->setPhone(223666);
             $user ->setUsername("username".$i);
-            // $user ->setAddress($faker->address);
-            // $user->setArchivage(false) ;
+            $user ->setAddress($faker->address);
+            $user->setArchivage(false) ;
             $user->setPassword($password) ;
             $user->setProfils($this->manager->getRepository(Profil::class)->findOneBy(['libelle'=>$profils[$i]]));
 

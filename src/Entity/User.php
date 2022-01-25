@@ -2,29 +2,62 @@
 
 namespace App\Entity;
 
-use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
+use App\Repository\UserRepository;
+use ApiPlatform\Core\Annotation\ApiFilter;
+use Doctrine\Common\Collections\Collection;
+use ApiPlatform\Core\Annotation\ApiSubresource;
+use ApiPlatform\Core\Annotation\ApiResource;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Security\Core\User\UserInterface;
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\SearchFilter;
 
 /**
  * @ORM\Entity(repositoryClass=UserRepository::class)
+ *  @ApiFilter(SearchFilter::class, properties={"archivage":"exact","type":"exact","working":"exact"})
+* @ApiResource(
+*     collectionOperations={
+ *          "adding"={
+ *              "route_name"="addUser" ,
+ *               "deserialize"= false ,
+ *              "security_post_denormalize"="is_granted('ROLE_ADMIN') || is_granted('ROLE_ADMINSYSTEM')" ,
+ *                "security_message"="Only admin system and admin agence can do this action" 
+ *           } ,
+ *           "getAllUsers"={
+ *                "path"="/admin/users" ,
+ *                "method"="GET" ,
+ *                "normalization_context"={"groups"={"users:read"}},
+ *                "security_post_denormalize"="is_granted('ROLE_ADMIN') || is_granted('ROLE_ADMINSYSTEM')" ,
+ *                "security_message"="Only admin system and admin agence can do this action" ,
+ *           }
+ *     },
+ *     itemOperations={
+*               "getUserbyId"={
+*                  "path"="/admin/user/{id}" ,
+*                   "security_message"="Only admins can add users." ,
+*                   "method"="GET",
+*                   "normalization_context"={"groups"={"usersById:read"}}
+*              },
+*     }
+* )
  */
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements UserInterface
 {
     /**
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
+     * @Groups({"users:read","usersById:read"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=180, unique=true)
+     * @Groups({"users:read","usersById:read"})
      */
     private $username;
-
+ 
     private $roles = [];
 
     /**
@@ -34,10 +67,51 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private $password;
 
     /**
+     * @ORM\Column(type="string", length=255)
+     * @Groups({"users:read","usersById:read"})
+     */
+    private $firstname;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     * @Groups({"users:read","usersById:read"})
+     */
+    private $lastname;
+
+    /**
+     * @ORM\Column(type="integer", nullable=true)
+     * @Groups({"users:read","usersById:read"})
+     */
+    private $phone;
+
+    /**
+     * @Groups({"users:read","usersById:read"})
+     * @ORM\Column(type="blob", nullable=true)
+     */
+    private $avatar;
+
+    /**
+     * @Groups({"users:read","usersById:read"})
+     * @ORM\Column(type="string", length=255, nullable=true)
+     */
+    private $address;
+
+    /**
+     * @ORM\Column(type="boolean")
+       * @Groups({"users:read","usersById:read"})
+     */
+    private $archivage;
+
+    /**
      * @Groups({"users:read","usersById:read"})
      * @ORM\ManyToOne(targetEntity=Profil::class, inversedBy="users")
      */
     private $profils;
+
+    public function __construct()
+    {
+        $this->Archivage = false ;
+    }
 
     public function getId(): ?int
     {
@@ -45,7 +119,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @deprecated since Symfony 5.3, use getUserIdentifier instead
+     * A visual identifier that represents this user.
+     *
+     * @see UserInterface
      */
     public function getUsername(): string
     {
@@ -60,16 +136,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
-    public function getUserIdentifier(): string
-    {
-        return (string) $this->username;
-    }
-
-     /**
      * @see UserInterface
      */
     public function getRoles(): array
@@ -88,12 +154,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+
     /**
-     * @see PasswordAuthenticatedUserInterface
+     * @see UserInterface
      */
     public function getPassword(): string
     {
-        return $this->password;
+        return (string) $this->password;
     }
 
     public function setPassword(string $password): self
@@ -123,6 +190,82 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // $this->plainPassword = null;
     }
 
+    public function getFirstname(): ?string
+    {
+        return $this->firstname;
+    }
+
+    public function setFirstname(string $firstname): self
+    {
+        $this->firstname = $firstname;
+
+        return $this;
+    }
+
+    public function getLastname(): ?string
+    {
+        return $this->lastname;
+    }
+
+    public function setLastname(string $lastname): self
+    {
+        $this->lastname = $lastname;
+
+        return $this;
+    }
+
+    public function getPhone(): ?int
+    {
+        return $this->phone;
+    }
+
+    public function setPhone(?int $phone): self
+    {
+        $this->phone = $phone;
+
+        return $this;
+    }
+
+    public function getAvatar()
+    {
+        $avatar = $this->avatar;
+        if($avatar) {
+            return (base64_encode(stream_get_contents($this->avatar))) ; 
+         }
+        return $avatar;
+    }
+
+    public function setAvatar($avatar): self
+    {
+        $this->avatar = $avatar;
+
+        return $this;
+    }
+
+    public function getAddress(): ?string
+    {
+        return $this->address;
+    }
+
+    public function setAddress(?string $address): self
+    {
+        $this->address = $address;
+
+        return $this;
+    }
+
+    public function getArchivage(): ?bool
+    {
+        return $this->archivage;
+    }
+
+    public function setArchivage(bool $archivage): self
+    {
+        $this->archivage = $archivage;
+
+        return $this;
+    }
+
     public function getProfils(): ?Profil
     {
         return $this->profils;
@@ -134,4 +277,5 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+
 }
